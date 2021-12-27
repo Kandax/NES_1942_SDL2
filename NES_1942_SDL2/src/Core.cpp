@@ -11,6 +11,7 @@ Core::Core()
 	, mWindow(nullptr)
 	, mRenderer(nullptr)
 	, mEvent()
+	, KEYBOARD(SDL_GetKeyboardState(nullptr))
 	, mET(60)
 
 {
@@ -98,19 +99,28 @@ bool Core::loadMedia()
 	bool success = true;
 
 	if (!mTextureWater.loadFromFile(mRenderer, "images/water_sprite.png")) {
-		std::cout << "Failed to load water texture" << std::endl;
+		std::cout << "Failed to load water texture\n";
 		success = false;
 	}
 
 	if (!mSpritePlayer.loadFromFile(mRenderer, "images/player_sprite.png")) {
-		std::cout << "Failed to load player texture" << std::endl;
+		std::cout << "Failed to load player texture \n";
 		success = false;
 	}
 	else
 	{
-		mSpritePlayer.setGridSettings(7,23, 17);
-		mSpritePlayer.setScale(15);
+		mSpritePlayer.setGridSettings(mPlayer.numberOfTextures,23, 17);
+		mSpritePlayer.setScale(mPlayer.scale);
 	}
+
+	if (!mTextureBulletPlayer.loadFromFile(mRenderer, "images/player_bullet_sprite.png")) {
+		std::cout << "Failed to load player bullet texture \n";
+		success = false;
+	}
+	else {
+		mTextureBulletPlayer.setScale(15);
+	}
+
 
 	return success;
 }
@@ -142,18 +152,64 @@ void Core::events()
 
 void Core::input()
 {
+	if (KEYBOARD[SDL_SCANCODE_RIGHT]) {
+		mPlayer.posX += mPlayer.playerSpeed;
+	}
+	if (KEYBOARD[SDL_SCANCODE_LEFT]) {
+		mPlayer.posX -= mPlayer.playerSpeed;
+	}
+
+	if (KEYBOARD[SDL_SCANCODE_UP]) {
+		mPlayer.posY -= mPlayer.playerSpeed;
+	}
+	if (KEYBOARD[SDL_SCANCODE_DOWN]) {
+		mPlayer.posY += mPlayer.playerSpeed;
+	}
+
+	// Firing bullets
+	if (KEYBOARD[SDL_SCANCODE_Z]) {
+		mPlayerBullets.push_back(BulletPlayer(mPlayer.posX , mPlayer.posY));
+		//+ (mPlayer.width * mPlayer.scale)/2
+		mPlayerBullets.back().update();
+		mPlayerBullets.back().posX = mPlayerBullets.back().posX + (mPlayer.width * mPlayer.scale) / 2   - mPlayerBullets.back().boundingBox.w/2;
+		mPlayerBullets.back().posY = mPlayerBullets.back().posY - mPlayerBullets.back().boundingBox.h;
+	}
+
+
+
 }
 
 void Core::update()
 {
+
+	mPlayer.update();
+
+	// Bullet player
+	for (int i = 0; i < mPlayerBullets.size(); i++) {
+		
+		mPlayerBullets[i].posY -= mPlayerBullets[i].bulletSpeed;
+		mPlayerBullets[i].update();
+
+	}
+
+	for (int i = 0; i < mPlayerBullets.size(); i++) {
+
+		if (mPlayerBullets[i].posY < -10) {
+			mPlayerBullets.erase(mPlayerBullets.begin() + i);
+		}
+
+	}
+	
+
 }
 
 void Core::render()
 {
-	std::cout << "Time used: " << mET.getTimeUsed() << "\n";
-	std::cout << "Elapsed time: " << mET.getElapsedTime() << "\n";
+	//std::cout << "Time used: " << mET.getTimeUsed() << "\n";
+	//std::cout << "Elapsed time: " << mET.getElapsedTime() << "\n";
 	std::cout << "FPS: " << 1.f / mET.getTimeUsed() << "\n";
 
+	std::cout << "Player bullets: " << mPlayerBullets.size() << "\n";
 
 
 
@@ -180,15 +236,35 @@ void Core::render()
 	}
 
 
-	// Temporary player
-	static int j = 0;
+	//  player
+	mSpritePlayer.render(mRenderer, mPlayer.posX, mPlayer.posY, mPlayer.textureIndex);
+
+	
+
+	// Colliding box
+	SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
+	SDL_RenderDrawRect(mRenderer, &mPlayer.boundingBox);
 
 
-	mSpritePlayer.render(mRenderer, 0, 0, j);
+	// Bullet player
+	for (int i = 0; i < mPlayerBullets.size(); i++) {
+		// 
+		for (int j = 0; j < mPlayerBullets[i].numberOfProjectiles; j++) {
+			float bulletInterspace = j * mPlayerBullets[i].width * mPlayerBullets[i].scale * mPlayerBullets[i].projectilesOffset;
+			
 
-	j++;
-	if (j >= 7) {
-		j = 0;
+
+			mTextureBulletPlayer.render(
+				mRenderer, 
+				mPlayerBullets[i].posX + bulletInterspace,
+				mPlayerBullets[i].posY
+			);
+
+		}
+		// Colliding box 
+		SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
+		SDL_RenderDrawRect(mRenderer, &mPlayerBullets[i].boundingBox);
+
 	}
 
 	// Updating screen
@@ -196,3 +272,24 @@ void Core::render()
 
 
 }
+
+bool Core::isColliding(const SDL_Rect& firstBoundingBox, const SDL_Rect& secondBoundingBox)
+{
+
+	// first x < second x + width && first x + width > second x
+	if (firstBoundingBox.x < secondBoundingBox.x + secondBoundingBox.w && firstBoundingBox.x + firstBoundingBox.w > secondBoundingBox.x
+		// first y < second y + height && first y + height > second y
+		&& firstBoundingBox.y < secondBoundingBox.y + secondBoundingBox.h && firstBoundingBox.y + firstBoundingBox.h > secondBoundingBox.y) 
+	{
+		return true;
+
+	}
+	else {
+		return false;
+
+	}
+
+
+}
+
+
