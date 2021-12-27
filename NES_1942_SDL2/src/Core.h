@@ -21,7 +21,7 @@ struct Player {
 	float width = 23;
 	float height = 17;
 
-	float scale = 15;
+	float scale = 4;
 
 	float playerSpeed = 4;
 	int numberOfTextures = 7;
@@ -48,10 +48,10 @@ struct BulletPlayer {
 	float width = 2;
 	float height = 7;
 
-	float scale = 15;
+	float scale = 4;
 
 	float bulletSpeed = 14;
-	int numberOfProjectiles = 4;
+	int numberOfProjectiles = 2;
 	int projectilesOffset = 2;
 
 	Texture *bulletTexture = nullptr;
@@ -75,6 +75,9 @@ struct BulletPlayer {
 
 
 };
+
+
+
 
 
 
@@ -138,6 +141,11 @@ private:
 
 	Player mPlayer;
 	std::vector<BulletPlayer> mPlayerBullets;
+
+
+	bool showCollisingBox;
+
+	bool isPlayerFiring;
 
 
 };

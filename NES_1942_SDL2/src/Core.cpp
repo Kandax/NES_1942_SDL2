@@ -13,6 +13,7 @@ Core::Core()
 	, mEvent()
 	, KEYBOARD(SDL_GetKeyboardState(nullptr))
 	, mET(60)
+	, showCollisingBox(false)
 
 {
 	
@@ -118,7 +119,7 @@ bool Core::loadMedia()
 		success = false;
 	}
 	else {
-		mTextureBulletPlayer.setScale(15);
+		mTextureBulletPlayer.setScale(4);
 	}
 
 
@@ -152,6 +153,16 @@ void Core::events()
 
 void Core::input()
 {
+	if (KEYBOARD[SDL_SCANCODE_F1]) {
+		showCollisingBox = true;
+	}
+	if (KEYBOARD[SDL_SCANCODE_F2]) {
+		showCollisingBox = false;
+	}
+
+
+
+
 	if (KEYBOARD[SDL_SCANCODE_RIGHT]) {
 		mPlayer.posX += mPlayer.playerSpeed;
 	}
@@ -168,12 +179,13 @@ void Core::input()
 
 	// Firing bullets
 	if (KEYBOARD[SDL_SCANCODE_Z]) {
-		mPlayerBullets.push_back(BulletPlayer(mPlayer.posX , mPlayer.posY));
-		//+ (mPlayer.width * mPlayer.scale)/2
-		mPlayerBullets.back().update();
-		mPlayerBullets.back().posX = mPlayerBullets.back().posX + (mPlayer.width * mPlayer.scale) / 2   - mPlayerBullets.back().boundingBox.w/2;
-		mPlayerBullets.back().posY = mPlayerBullets.back().posY - mPlayerBullets.back().boundingBox.h;
+		isPlayerFiring = true;
 	}
+	else {
+		isPlayerFiring = false;
+	}
+
+
 
 
 
@@ -181,6 +193,29 @@ void Core::input()
 
 void Core::update()
 {
+	
+	static float timerForFiringBulletPlayer = 0;
+	timerForFiringBulletPlayer += 1 * mET.getElapsedTime();
+
+	if (timerForFiringBulletPlayer >= 0.3f) {
+		if (isPlayerFiring) {
+			// Create bullet at player position
+			mPlayerBullets.push_back(BulletPlayer(mPlayer.posX, mPlayer.posY));
+			// update bullet collider box
+			mPlayerBullets.back().update();
+			// Center bullet in the middle of player 
+			mPlayerBullets.back().posX = mPlayerBullets.back().posX + (mPlayer.width * mPlayer.scale) / 2 - mPlayerBullets.back().boundingBox.w / 2;
+			// Pick bullet above player
+			mPlayerBullets.back().posY = mPlayerBullets.back().posY - mPlayerBullets.back().boundingBox.h;
+
+			
+
+		}
+			timerForFiringBulletPlayer = 0;
+	}
+
+
+
 
 	mPlayer.update();
 
@@ -192,6 +227,7 @@ void Core::update()
 
 	}
 
+	// Erase bullet if he goes over the edge
 	for (int i = 0; i < mPlayerBullets.size(); i++) {
 
 		if (mPlayerBullets[i].posY < -10) {
@@ -209,7 +245,7 @@ void Core::render()
 	//std::cout << "Elapsed time: " << mET.getElapsedTime() << "\n";
 	std::cout << "FPS: " << 1.f / mET.getTimeUsed() << "\n";
 
-	std::cout << "Player bullets: " << mPlayerBullets.size() << "\n";
+	//std::cout << "Player bullets: " << mPlayerBullets.size() << "\n";
 
 
 
@@ -242,18 +278,23 @@ void Core::render()
 	
 
 	// Colliding box
-	SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
-	SDL_RenderDrawRect(mRenderer, &mPlayer.boundingBox);
+	if (showCollisingBox) {
+		SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
+		SDL_RenderDrawRect(mRenderer, &mPlayer.boundingBox);
+	}
+	
+
 
 
 	// Bullet player
 	for (int i = 0; i < mPlayerBullets.size(); i++) {
-		// 
+		// Draw bullet for each projectiles
 		for (int j = 0; j < mPlayerBullets[i].numberOfProjectiles; j++) {
+			// Space between a bullets
 			float bulletInterspace = j * mPlayerBullets[i].width * mPlayerBullets[i].scale * mPlayerBullets[i].projectilesOffset;
 			
 
-
+			// Rendering each bullet with interspace
 			mTextureBulletPlayer.render(
 				mRenderer, 
 				mPlayerBullets[i].posX + bulletInterspace,
@@ -262,8 +303,10 @@ void Core::render()
 
 		}
 		// Colliding box 
-		SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
-		SDL_RenderDrawRect(mRenderer, &mPlayerBullets[i].boundingBox);
+		if (showCollisingBox) {
+			SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
+			SDL_RenderDrawRect(mRenderer, &mPlayerBullets[i].boundingBox);
+		}
 
 	}
 
