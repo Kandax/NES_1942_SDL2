@@ -3,6 +3,8 @@
 #include <string>
 #include <stdlib.h>
 #include <vector>
+#include <time.h>
+#include <math.h>
 
 
 #include <SDL.h>
@@ -16,7 +18,7 @@
 
 struct Player {
 	float posX = 300;
-	float posY = 300;
+	float posY = 700;
 
 	float width = 23;
 	float height = 17;
@@ -54,7 +56,7 @@ struct BulletPlayer {
 	int numberOfProjectiles = 2;
 	int projectilesOffset = 2;
 
-	Texture *bulletTexture = nullptr;
+
 
 	SDL_Rect boundingBox;
 
@@ -76,6 +78,42 @@ struct BulletPlayer {
 
 };
 
+struct EnemyGrey {
+
+	enum class EnemyState
+	{
+		FORWARD = 0,
+		ATTACK_LEFT,
+		ATTACK_RIGHT
+	} enemyState;
+
+
+	float posX = 0;
+	float posY = 0;
+
+	float width = 16;
+	float height = 17;
+
+	float scale = 4;
+
+	float enemySpeed = 4;
+
+	SDL_Rect boundingBox;
+
+	EnemyGrey(float posX, float posY)
+		: posX(posX)
+		, posY(posY)
+	{
+
+	}
+
+	void update() {
+		boundingBox.x = posX;
+		boundingBox.y = posY;
+		boundingBox.w = width  * scale;
+		boundingBox.h = height * scale;
+	}
+};
 
 
 
@@ -136,12 +174,17 @@ private:
 
 	// Textures
 	Texture mTextureWater;
-	SpriteSheet mSpritePlayer;
 	Texture mTextureBulletPlayer;
+
+
+	SpriteSheet mSpritePlayer;
+	SpriteSheet mSpriteEnemyGrey;
+
+
 
 	Player mPlayer;
 	std::vector<BulletPlayer> mPlayerBullets;
-
+	std::vector<EnemyGrey> mEnemyGreys;
 
 	bool showCollisingBox;
 
